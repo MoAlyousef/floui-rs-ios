@@ -1,0 +1,16 @@
+[package]
+name = "pure"
+version = "0.1.0"
+edition = "2021"
+description = "A pure rust ios app"
+
+[dependencies]
+objc = "0.2.7"
+floui = "0.1"
+
+[package.metadata.bundle]
+name = "pure"
+identifier = "com.neurosrg.pure"
+category = "Education"
+short_description = "A pure rust app"
+long_description = "A pure rust app"
