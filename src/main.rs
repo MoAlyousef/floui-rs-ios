@@ -109,9 +109,11 @@ fn main() {
                 delegateName: *mut Object,
             ) -> i32;
         }
-        
+
         let autoreleasepool: *mut Object = msg_send![class!(NSAutoreleasePool), new];
-        UIApplicationMain(0, ptr::null_mut(), ptr::null_mut(), name);
+        // Anything needing the autoreleasepool
         let _: () = msg_send![autoreleasepool, drain];
+
+        UIApplicationMain(0, ptr::null_mut(), ptr::null_mut(), name);
     }
 }
