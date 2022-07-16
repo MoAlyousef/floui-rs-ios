@@ -7,17 +7,37 @@ use std::os::raw::c_char;
 use std::ptr;
 use std::rc::Rc;
 
+fn mygui(vc: &ViewController) -> MainView {
+    let count = Rc::from(RefCell::from(0));
+    MainView::new(
+        &vc,
+        &[
+            &Button::new("Increment").foreground(Color::Blue).action({
+                let count = count.clone();
+                move |_| {
+                    log("Increment clicked");
+                    let mut c = count.borrow_mut();
+                    *c += 1;
+                    let t: Text = from_id("mytext").unwrap();
+                    t.text(&format!("{}", c));
+                }
+            }),
+            &Text::new("0").id("mytext").center().bold(),
+            &Button::new("Decrement")
+                .foreground(Color::Red)
+                .action(move |_| {
+                    log("Decrement clicked");
+                    let mut c = count.borrow_mut();
+                    *c -= 1;
+                    let t: Text = from_id("mytext").unwrap();
+                    t.text(&format!("{}", c));
+                }),
+        ],
+    )
+}
+
 #[repr(C)]
 struct Frame(f64, f64, f64, f64);
-
-extern "C" {
-    fn UIApplicationMain(
-        argc: i32,
-        argv: *mut *mut c_char,
-        principalClass: *mut Object,
-        delegateName: *mut Object,
-    ) -> i32;
-}
 
 extern "C" fn did_finish_launching_with_options(
     obj: &mut Object,
@@ -52,11 +72,11 @@ extern "C" fn did_load(obj: &mut Object, _: Sel) {
     mygui(&vc);
 }
 
-pub fn prep() {
-    let ui_responder_cls = class!(UIResponder);
-    let mut app_delegate_cls = ClassDecl::new("AppDelegate", ui_responder_cls).unwrap();
-
+fn main() {
     unsafe {
+        let ui_responder_cls = class!(UIResponder);
+        let mut app_delegate_cls = ClassDecl::new("AppDelegate", ui_responder_cls).unwrap();
+
         app_delegate_cls.add_method(
             sel!(application:didFinishLaunchingWithOptions:),
             did_finish_launching_with_options
@@ -66,55 +86,30 @@ pub fn prep() {
         app_delegate_cls.add_ivar::<usize>("window");
 
         app_delegate_cls.register();
-    }
 
-    let ui_view_controller_cls = class!(UIViewController);
-    let mut view_controller_cls = ClassDecl::new("ViewController", ui_view_controller_cls).unwrap();
+        let ui_view_controller_cls = class!(UIViewController);
+        let mut view_controller_cls =
+            ClassDecl::new("ViewController", ui_view_controller_cls).unwrap();
 
-    unsafe {
         view_controller_cls.add_method(
             sel!(viewDidLoad),
             did_load as extern "C" fn(&mut Object, Sel),
         );
 
         view_controller_cls.register();
-    }
-}
 
-fn mygui(vc: &ViewController) -> MainView {
-    let count = Rc::from(RefCell::from(0));
-    MainView::new(
-        &vc,
-        &[
-            &Button::new("Increment").foreground(Color::Blue).action({
-                let count = count.clone();
-                move |_| {
-                    log("Increment clicked");
-                    let mut c = count.borrow_mut();
-                    *c += 1;
-                    let t: Text = from_id("mytext").unwrap();
-                    t.text(&format!("{}", c));
-                }
-            }),
-            &Text::new("0").id("mytext").center().bold(),
-            &Button::new("Decrement")
-                .foreground(Color::Red)
-                .action(move |_| {
-                    log("Decrement clicked");
-                    let mut c = count.borrow_mut();
-                    *c -= 1;
-                    let t: Text = from_id("mytext").unwrap();
-                    t.text(&format!("{}", c));
-                }),
-        ],
-    )
-}
-
-fn main() {
-    unsafe {
-        prep();
         let name: *mut Object =
             msg_send![class!(NSString), stringWithUTF8String:"AppDelegate\0".as_ptr()];
+
+        extern "C" {
+            fn UIApplicationMain(
+                argc: i32,
+                argv: *mut *mut c_char,
+                principalClass: *mut Object,
+                delegateName: *mut Object,
+            ) -> i32;
+        }
+        
         UIApplicationMain(0, ptr::null_mut(), ptr::null_mut(), name);
     }
 }
